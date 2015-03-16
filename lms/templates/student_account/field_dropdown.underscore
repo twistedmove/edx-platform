@@ -1,17 +1,26 @@
-<label class="account-settings-field-title">
-    <%- gettext(title) %>
-</label>
+<% if (title) { %>
+    <label class="account-settings-field-title">
+        <%- gettext(title) %>
+    </label>
+<% } %>
+
+<% if (iconName) { %>
+    <i class="account-settings-field-icon icon fa <%- iconName %> fa-fw"></i>
+<% } %>
+
 <span class="account-settings-field-value">
-    <select name="select">
-        <% if (!required) { %>
-            <option value=""></option>
-        <% } %>
-        <% _.each(selectOptions, function(selectOption) { %>
-            <option value="<%- selectOption[0] %>"><%- selectOption[1] %></option>
-        <% }); %>
-    </select>
+    <% if (state === 'edit') { %>
+        <select name="select">
+            <% if (!required) { %>
+                <option value=""></option>
+            <% } %>
+            <% _.each(selectOptions, function(selectOption) { %>
+                <option value="<%- selectOption[0] %>"><%- selectOption[1] %></option>
+            <% }); %>
+        </select>
+    <% } %>
 </span>
+
 <span class="account-settings-field-message">
     <%- gettext(message) %>
 </span>
-<hr class="divider">

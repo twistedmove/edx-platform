@@ -1,0 +1,37 @@
+<% if (state === 'placeholder') { %>
+
+    <div class="account-settings-field-placeholder">
+
+        <div class="account-settings-field-placeholder-title">
+            <%- gettext(title) %>
+        </div>
+
+        <div class="account-settings-field-placeholder-value">
+            <%- gettext(placeholderValue) %>
+        </div>
+
+    </div>
+
+<% } else { %>
+
+    <div class="account-settings-field-wrapper">
+
+        <div class="account-settings-field-header">
+            <label class="account-settings-field-title">
+                <%- gettext(title) %>
+            </label>
+            <span class="account-settings-field-message">
+                <%= message %>
+            </span>
+        </div>
+
+        <div class="account-settings-field-value">
+            <% if (state === 'edit') { %>
+                <textarea rows="2"><%- value %></textarea>
+            <% } else { %>
+                <%- value %>
+            <% } %>
+        </div>
+    </div>
+
+<% } %>
