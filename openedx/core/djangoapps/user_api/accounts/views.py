@@ -69,6 +69,14 @@ class AccountView(APIView):
 
                 * bio: null or textural representation of user biographical information ("about me")
 
+                * is_active: boolean representation of whether a user is active.
+
+                * profile_image: JSON representation of a user's profile image information.  The keys are:
+                    * "has_image": boolean indicating whether the user has a profile image.
+                    * "image_url_*": absolute URL to various sizes of a user's profile image, where '*' matches a
+                        representation of the corresponding image size such as 'small', 'medium', 'large', and 'full'.
+                        These are configurable via PROFILE_IMAGE_SIZES_MAP.
+
             For all text fields, clients rendering the values should take care to HTML escape them to avoid
             script injections, as the data is stored exactly as specified. The intention is that plain text is
             supported, not HTML.
