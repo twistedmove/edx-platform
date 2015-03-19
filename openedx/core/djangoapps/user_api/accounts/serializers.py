@@ -1,12 +1,47 @@
 from rest_framework import serializers
+from django.conf import settings
 from django.contrib.auth.models import User
 from openedx.core.djangoapps.user_api.accounts import NAME_MIN_LENGTH
 from openedx.core.djangoapps.user_api.serializers import ReadOnlyFieldsSerializerMixin
 
-from student.models import UserProfile
+from student.models import UserProfile, LanguageProficiency
 from .helpers import get_profile_image_url_for_user, PROFILE_IMAGE_SIZES_MAP
 
 PROFILE_IMAGE_KEY_PREFIX = 'image_url'
+
+
+class LanguageProficiencySerializer(serializers.ModelSerializer):
+    """
+    Class that serializes the LanguageProficiency model for account
+    information.
+    """
+    display_name = serializers.SerializerMethodField("get_display_name")
+
+    class Meta:
+        model = LanguageProficiency
+        fields = ("code",)
+
+    def get_identity(self, data):
+        """
+        This is used in bulk updates to determine the identity of an object.
+        The default is to use the id of an object, but we want to override that
+        and consider the language code to be the canonical identity of a
+        LanguageProficiency model.
+        """
+        try:
+            return data.get('code', None)
+        except AttributeError:
+            return None
+
+    def validate_code(self, attrs, source):
+        """
+        Validate incoming language codes against the set of ISO 639 language
+        codes we support.
+        """
+        if source in attrs:
+            if attrs[source] not in settings.ALL_LANGUAGES_DICT:
+                raise serializers.ValidationError("The code field must be a valid ISO 639 language code.")
+        return attrs
 
 
 class AccountUserSerializer(serializers.HyperlinkedModelSerializer, ReadOnlyFieldsSerializerMixin):
@@ -25,12 +60,13 @@ class AccountLegacyProfileSerializer(serializers.HyperlinkedModelSerializer, Rea
     Class that serializes the portion of UserProfile model needed for account information.
     """
     profile_image = serializers.SerializerMethodField("get_profile_image")
+    language_proficiencies = LanguageProficiencySerializer(many=True, allow_add_remove=True, required=False)
 
     class Meta:
         model = UserProfile
         fields = (
             "name", "gender", "goals", "year_of_birth", "level_of_education", "language", "country",
-            "mailing_address", "bio", "profile_image"
+            "mailing_address", "bio", "profile_image", "language_proficiencies"
         )
         # Currently no read-only field, but keep this so view code doesn't need to know.
         read_only_fields = ()
@@ -46,6 +82,15 @@ class AccountLegacyProfileSerializer(serializers.HyperlinkedModelSerializer, Rea
                 )
             attrs[source] = new_name
 
+        return attrs
+
+    def validate_language_proficiencies(self, attrs, source):
+        """ Enforce all languages are unique. """
+        language_proficiencies = [language for language in attrs.get(source, [])]
+        if language_proficiencies and len(language_proficiencies) > 1:
+            first_code = language_proficiencies[0].code
+            if all([language.code == first_code for language in language_proficiencies]):
+                raise serializers.ValidationError("The language_proficiencies field must consist of unique languages")
         return attrs
 
     def transform_gender(self, obj, value):

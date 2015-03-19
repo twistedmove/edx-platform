@@ -77,6 +77,10 @@ class AccountView(APIView):
                         representation of the corresponding image size such as 'small', 'medium', 'large', and 'full'.
                         These are configurable via PROFILE_IMAGE_SIZES_MAP.
 
+                * language_proficiencies: array of language preferences.  Each preference is a JSON object with the
+                    following keys:
+                    * "code": string ISO 639 language code e.g. "en".
+
             For all text fields, clients rendering the values should take care to HTML escape them to avoid
             script injections, as the data is stored exactly as specified. The intention is that plain text is
             supported, not HTML.

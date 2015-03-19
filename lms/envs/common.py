@@ -1992,6 +1992,7 @@ ALL_LANGUAGES = (
     [u"za", u"Zhuang"],
     [u"zu", u"Zulu"]
 )
+ALL_LANGUAGES_DICT = dict(ALL_LANGUAGES)
 
 
 ### Apps only installed in some instances

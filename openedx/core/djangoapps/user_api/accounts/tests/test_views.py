@@ -11,7 +11,7 @@ from django.test.utils import override_settings
 from rest_framework.test import APITestCase, APIClient
 
 from student.tests.factories import UserFactory
-from student.models import UserProfile, PendingEmailChange
+from student.models import UserProfile, LanguageProficiency, PendingEmailChange
 from openedx.core.djangoapps.user_api.accounts import ACCOUNT_VISIBILITY_PREF_KEY
 from openedx.core.djangoapps.user_api.preferences.api import set_user_preference
 from .. import PRIVATE_VISIBILITY, ALL_USERS_VISIBILITY
@@ -88,6 +88,7 @@ class UserAPITestCase(APITestCase):
         legacy_profile.mailing_address = "Park Ave"
         legacy_profile.bio = "Tired mother of twins"
         legacy_profile.has_profile_image = True
+        legacy_profile.language_proficiencies.add(LanguageProficiency(code='en'))
         legacy_profile.save()
 
 
@@ -152,7 +153,7 @@ class TestAccountAPI(UserAPITestCase):
         Verify that all account fields are returned (even those that are not shareable).
         """
         data = response.data
-        self.assertEqual(14, len(data))
+        self.assertEqual(15, len(data))
         self.assertEqual(self.user.username, data["username"])
         self.assertEqual(self.user.first_name + " " + self.user.last_name, data["name"])
         self.assertEqual("US", data["country"])
@@ -167,6 +168,7 @@ class TestAccountAPI(UserAPITestCase):
         self.assertIsNotNone(data["date_joined"])
         self.assertEqual("Tired mother of twins", data["bio"])
         self._verify_profile_image_data(data, True)
+        self.assertEqual([{"code": "en"}], data["language_proficiencies"])
 
     def test_anonymous_access(self):
         """
@@ -268,7 +270,7 @@ class TestAccountAPI(UserAPITestCase):
         def verify_get_own_information():
             response = self.send_get(self.client)
             data = response.data
-            self.assertEqual(14, len(data))
+            self.assertEqual(15, len(data))
             self.assertEqual(self.user.username, data["username"])
             self.assertEqual(self.user.first_name + " " + self.user.last_name, data["name"])
             for empty_field in ("year_of_birth", "level_of_education", "mailing_address", "bio"):
@@ -282,6 +284,7 @@ class TestAccountAPI(UserAPITestCase):
             self.assertIsNotNone(data["date_joined"])
             self.assertEqual(self.user.is_active, data["is_active"])
             self._verify_profile_image_data(data, False)
+            self.assertEqual([], data["language_proficiencies"])
 
         self.client.login(username=self.user.username, password=self.test_password)
         verify_get_own_information()
@@ -349,6 +352,10 @@ class TestAccountAPI(UserAPITestCase):
         ("bio", u"壓是進界推日不復女"),
         # Note that we store the raw data, so it is up to client to escape the HTML.
         ("bio", "<html>fancy text</html>"),
+        ("language_proficiencies", [{u"code": u"en"}, {u"code": u"fr"}], "not_a_list", {u'non_field_errors': [u'Expected a list of items.']}),
+        ("language_proficiencies", [{u"code": u"en"}, {u"code": u"fr"}], [{}], {'code': [u'This field is required.']}),
+        ("language_proficiencies", [{u"code": u"en"}, {u"code": u"fr"}], [{u"code": u"fake_code"}], {'code': [u'The code field must be a valid ISO 639 language code.']}),
+        ("language_proficiencies", [{u"code": u"en"}, {u"code": u"fr"}], [{u"code": u"en"}, {u"code": u"en"}], u"The language_proficiencies field must consist of unique languages"),
         # Note that email is tested below, as it is not immediately updated.
     )
     @ddt.unpack
