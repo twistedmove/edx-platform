@@ -36,7 +36,7 @@ def validate_uploaded_image(uploaded_file):
     """
     # validation code by @pmitros,
     # adapted from https://github.com/pmitros/ProfileXBlock
-    # TODO: investigate if PIL has builtin methods for this
+    # see also: http://en.wikipedia.org/wiki/Magic_number_%28programming%29
 
     image_types = {
         'jpeg': {
@@ -72,7 +72,7 @@ def validate_uploaded_image(uploaded_file):
     if uploaded_file.content_type not in image_types[filetype]['mimetypes']:
         raise ImageValidationError(DevMsg.FILE_BAD_MIMETYPE)
 
-    # check image file headers match expected file type
+    # check magic number matches expected file type
     headers = image_types[filetype]['magic']
     if uploaded_file.read(len(headers[0]) / 2).encode('hex') not in headers:
         raise ImageValidationError(DevMsg.FILE_BAD_EXT)
