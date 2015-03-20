@@ -87,6 +87,7 @@ class UserAPITestCase(APITestCase):
         legacy_profile.year_of_birth = 2000
         legacy_profile.goals = "world peace"
         legacy_profile.mailing_address = "Park Ave"
+        legacy_profile.gender = "f"
         legacy_profile.bio = "Tired mother of twins"
         legacy_profile.has_profile_image = True
         legacy_profile.save()
@@ -158,7 +159,7 @@ class TestAccountAPI(UserAPITestCase):
         self.assertEqual(self.user.first_name + " " + self.user.last_name, data["name"])
         self.assertEqual("US", data["country"])
         self.assertEqual("", data["language"])
-        self.assertEqual("m", data["gender"])
+        self.assertEqual("f", data["gender"])
         self.assertEqual(2000, data["year_of_birth"])
         self.assertEqual("m", data["level_of_education"])
         self.assertEqual("world peace", data["goals"])
@@ -408,8 +409,8 @@ class TestAccountAPI(UserAPITestCase):
                 "Field '{0}' cannot be edited.".format(field_name), data["field_errors"][field_name]["user_message"]
             )
 
-        for field_name in ["username", "date_joined", "is_active"]:
-            response = self.send_patch(client, {field_name: "will_error", "gender": "f"}, expected_status=400)
+        for field_name in ["username", "date_joined", "is_active", "profile_image", "requires_parental_consent"]:
+            response = self.send_patch(client, {field_name: "will_error", "gender": "o"}, expected_status=400)
             verify_error_response(field_name, response.data)
 
         # Make sure that gender did not change.
