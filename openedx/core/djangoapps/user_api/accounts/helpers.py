@@ -21,14 +21,8 @@ def get_profile_image_storage():
     Configures and returns a django Storage instance that can be used
     to physically locate, read and write profile images.
     """
-    # Note that, for now, the backend will be FileSystemStorage.  When
-    # we eventually support s3 storage, we'll need to pass a parameter
-    # to the storage class indicating the s3 bucket which we're using
-    # for profile picture uploads.
     storage_class = get_storage_class(settings.PROFILE_IMAGE_BACKEND)
-    if storage_class == FileSystemStorage:
-        kwargs = {'base_url': (settings.PROFILE_IMAGE_DOMAIN + settings.PROFILE_IMAGE_URL_PATH)}
-    return storage_class(**kwargs)
+    return storage_class(base_url=(settings.PROFILE_IMAGE_DOMAIN + settings.PROFILE_IMAGE_URL_PATH))
 
 
 def get_profile_image_name(username):

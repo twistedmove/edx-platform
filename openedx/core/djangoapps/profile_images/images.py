@@ -115,9 +115,6 @@ def generate_profile_images(image_file, profile_image_names):
     for size, name in profile_image_names.items():
         scaled_image_file = _get_scaled_image_file(image_obj, size)
         # Store the file.
-        # TODO overwrites should be atomic, but FileStorage doesn't support this.
-        if storage.exists(name):
-            storage.delete(name)
         storage.save(name, scaled_image_file)
 
 
