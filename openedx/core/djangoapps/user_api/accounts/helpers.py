@@ -13,7 +13,6 @@ PROFILE_IMAGE_SIZES_MAP = {
     'small': 30
 }
 _PROFILE_IMAGE_SIZES = PROFILE_IMAGE_SIZES_MAP.values()
-PROFILE_IMAGE_FORMAT = 'jpg'
 
 
 def get_profile_image_storage():
@@ -37,7 +36,7 @@ def get_profile_image_filename(name, size):
     Returns the full filename for a profile image, given the name prefix and
     size.
     """
-    return '{name}_{size}.{format}'.format(name=name, size=size, format=PROFILE_IMAGE_FORMAT)
+    return '{name}_{size}.jpg'.format(name=name, size=size)
 
 
 def get_profile_image_url_for_user(user, size):
