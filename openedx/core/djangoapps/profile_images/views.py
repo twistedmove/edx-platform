@@ -15,7 +15,7 @@ from openedx.core.lib.api.authentication import (
 )
 from openedx.core.lib.api.permissions import IsUserInUrl, IsUserInUrlOrStaff
 from ..user_api.accounts.api import set_has_profile_image, get_profile_image_names
-from .images import validate_uploaded_image, generate_profile_images, remove_profile_images, ImageValidationError
+from .images import validate_uploaded_image, generate_and_store_profile_images, remove_profile_images, ImageValidationError
 
 
 class ProfileImageUploadView(APIView):
@@ -58,7 +58,7 @@ class ProfileImageUploadView(APIView):
                 )
 
             # generate profile pic and thumbnails and store them
-            generate_profile_images(uploaded_file, get_profile_image_names(username))
+            generate_and_store_profile_images(uploaded_file, get_profile_image_names(username))
 
             # update the user account to reflect that a profile image is available.
             set_has_profile_image(username, True)

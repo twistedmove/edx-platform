@@ -97,7 +97,7 @@ def _get_scaled_image_file(image_obj, size):
     return image_file
 
 
-def generate_profile_images(image_file, profile_image_names):
+def generate_and_store_profile_images(image_file, profile_image_names):
     """
     Generates a set of image files based on image_file and
     stores them according to the sizes and filenames specified

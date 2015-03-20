@@ -15,7 +15,7 @@ from student.tests.factories import UserFactory
 
 from ...user_api.accounts.api import set_has_profile_image, get_profile_image_names
 from ...user_api.accounts.helpers import get_profile_image_storage
-from ..images import generate_profile_images, ImageValidationError
+from ..images import generate_and_store_profile_images, ImageValidationError
 from .helpers import make_image_file
 
 TEST_PASSWORD = "test"
@@ -178,7 +178,7 @@ class ProfileImageRemoveTestCase(ProfileImageEndpointTestCase):
 
     def setUp(self):
         super(ProfileImageRemoveTestCase, self).setUp()
-        generate_profile_images(make_image_file(), get_profile_image_names(self.user.username))
+        generate_and_store_profile_images(make_image_file(), get_profile_image_names(self.user.username))
         self.check_images()
         set_has_profile_image(self.user.username, True)
 

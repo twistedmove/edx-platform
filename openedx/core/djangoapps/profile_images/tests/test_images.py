@@ -15,7 +15,7 @@ from PIL import Image
 
 from ..images import (
     validate_uploaded_image,
-    generate_profile_images,
+    generate_and_store_profile_images,
     remove_profile_images,
     DevMsg,
     ImageValidationError,
@@ -111,7 +111,7 @@ class TestValidateUploadedImage(TestCase):
 @ddt.ddt
 class TestGenerateProfileImages(TestCase):
     """
-    Test generate_profile_images
+    Test generate_and_store_profile_images
     """
 
     @ddt.data(
@@ -141,7 +141,7 @@ class TestGenerateProfileImages(TestCase):
                 "openedx.core.djangoapps.profile_images.images.get_profile_image_storage",
                 return_value=mock_storage
         ):
-            generate_profile_images(uploaded_file, requested_sizes)
+            generate_and_store_profile_images(uploaded_file, requested_sizes)
             names_and_files = [v[0] for v in mock_storage.save.call_args_list]
             actual_sizes = {}
             for name, file in names_and_files:
