@@ -56,9 +56,9 @@ class ProfileImageEndpointTestCase(APITestCase):
         for size, name in get_profile_image_names(self.user.username).items():
             if exist:
                 self.assertTrue(self.storage.exists(name))
-                img = Image.open(self.storage.path(name))
-                self.assertEqual(img.size, (size, size))
-                self.assertEqual(img.format, 'JPEG')
+                with closing(Image.open(self.storage.path(name))) as img:
+                    self.assertEqual(img.size, (size, size))
+                    self.assertEqual(img.format, 'JPEG')
             else:
                 self.assertFalse(self.storage.exists(name))
 
@@ -162,14 +162,15 @@ class ProfileImageUploadTestCase(ProfileImageEndpointTestCase):
         Test that when upload validation fails, the proper HTTP response and
         message are returned.
         """
-        with mock.patch(
-            'openedx.core.djangoapps.profile_images.views.validate_uploaded_image',
-            side_effect=ImageValidationError("test error message")
-        ):
-            response = self.client.post(self.url, {'file': make_image_file()}, format='multipart')
-            self.check_response(response, 400, "test error message")
-            self.check_images(False)
-            self.check_has_profile_image(False)
+        with closing(make_image_file()) as image_file:
+            with mock.patch(
+                'openedx.core.djangoapps.profile_images.views.validate_uploaded_image',
+                side_effect=ImageValidationError("test error message")
+            ):
+                response = self.client.post(self.url, {'file': image_file}, format='multipart')
+                self.check_response(response, 400, "test error message")
+                self.check_images(False)
+                self.check_has_profile_image(False)
 
 
 @unittest.skipUnless(settings.ROOT_URLCONF == 'lms.urls', 'Profile Image API is only supported in LMS')

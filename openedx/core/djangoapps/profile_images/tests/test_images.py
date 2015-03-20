@@ -153,11 +153,11 @@ class TestGenerateProfileImages(TestCase):
                 actual_sizes = {}
                 for name, file in names_and_files:
                     # get the size of the image file and ensure it's square jpeg
-                    image_obj = Image.open(file)
-                    width, height = image_obj.size
-                    self.assertEqual(width, height)
-                    self.assertEqual(image_obj.format, 'JPEG')
-                    actual_sizes[width] = name
+                    with closing(Image.open(file)) as image_obj:
+                        width, height = image_obj.size
+                        self.assertEqual(width, height)
+                        self.assertEqual(image_obj.format, 'JPEG')
+                        actual_sizes[width] = name
                 self.assertEqual(requested_sizes, actual_sizes)
                 mock_storage.save.reset_mock()
 
