@@ -62,7 +62,7 @@ def validate_uploaded_image(uploaded_file):
         raise ImageValidationError(FILE_UPLOAD_TOO_SMALL)
 
     # check the file extension looks acceptable
-    filename = str(uploaded_file.name).lower()
+    filename = unicode(uploaded_file.name).lower()
     filetype = [ft for ft in image_types if any(filename.endswith(ext) for ext in image_types[ft]['extension'])]
     if not filetype:
         raise ImageValidationError(FILE_UPLOAD_BAD_TYPE)
