@@ -79,7 +79,7 @@ class VideoSummaryList(generics.ListAPIView):
 
     @mobile_course_access(depth=None)
     def list(self, request, course, *args, **kwargs):
-        video_profiles = self._csv_to_list(MobileApiConfig.video_profiles)
+        video_profiles = self._csv_to_list(MobileApiConfig.get('video_profiles'))
         video_outline = list(
             BlockOutline(
                 course.id,
