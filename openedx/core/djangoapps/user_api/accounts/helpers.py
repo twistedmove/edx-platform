@@ -39,44 +39,38 @@ def get_profile_image_filename(name, size):
     return '{name}_{size}.jpg'.format(name=name, size=size)
 
 
-def get_profile_image_url_for_user(user, size):
-    """Return the URL to a user's profile image for a given size.
-    Note that based on the value of
-    django.conf.settings.PROFILE_IMAGE_DOMAIN, the URL may be relative,
-    and in that case the caller is responsible for constructing the full
-    URL.
-
-    If the user has not yet uploaded a profile image, return the URL to
-    the default edX user profile image.
-
-    Arguments:
-        user (django.auth.User): The user for whom we're generating a
-        profile image URL.
-
-    Returns:
-        string: The URL for the user's profile image.
-
-    Raises:
-        ValueError: The caller asked for an unsupported image size.
-
-    TODO refactor to get all the URLs at once, in order to avoid running the hashing
-    function 4x as often as necessary.
-    """
-    if size not in _PROFILE_IMAGE_SIZES:
-        raise ValueError('Unsupported profile image size: {size}'.format(size=size))
-
-    if user.profile.has_profile_image:
-        name = get_profile_image_name(user.username)
-    else:
-        name = settings.PROFILE_IMAGE_DEFAULT_FILENAME
-
-    filename = get_profile_image_filename(name, size)
-    return get_profile_image_storage().url(filename)
-
-
 def get_profile_image_names(username):
     """
     Return a dict {size:filename} for each profile image for a given username.
     """
     name = get_profile_image_name(username)
     return {size: get_profile_image_filename(name, size) for size in _PROFILE_IMAGE_SIZES}
+
+
+def get_profile_image_urls(user):
+    """
+    Return a dict {size:url} for each profile image for a given image name.
+    Note that based on the value of django.conf.settings.PROFILE_IMAGE_DOMAIN,
+    the URL may be relative, and in that case the caller is responsible for
+    constructing the full URL if needed.
+
+    Arguments:
+        name (str): the base name for the requested profile image.
+
+    Returns:
+        dictionary of {size_display_name: url} for each image.
+
+    Raises:
+        ValueError: The caller asked for an unsupported image size.
+
+    """
+    if user.profile.has_profile_image:
+        name = get_profile_image_name(user.username)
+    else:
+        name = settings.PROFILE_IMAGE_DEFAULT_FILENAME
+    storage = get_profile_image_storage()
+
+    return {
+        size_display_name: storage.url(get_profile_image_filename(name, size))
+        for size_display_name, size in PROFILE_IMAGE_SIZES_MAP.items()
+    }
