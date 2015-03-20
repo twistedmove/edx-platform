@@ -5,27 +5,27 @@ from cStringIO import StringIO
 
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.utils.translation import ugettext as _, ugettext_noop as _noop
 from PIL import Image
 
 from ..user_api.accounts.api import get_profile_image_storage
 
 
-class DevMsg(object):
-    """
-    Holder for pseudo-constants.
-    """
-    FILE_TOO_LARGE = 'Maximum file size exceeded.'
-    FILE_TOO_SMALL = 'Minimum file size not met.'
-    FILE_BAD_TYPE = 'Unsupported file type.'
-    FILE_BAD_EXT = 'File extension does not match data.'
-    FILE_BAD_MIMETYPE = 'Content-Type header does not match data.'
+FILE_UPLOAD_TOO_LARGE = _noop('Maximum file size exceeded.')
+FILE_UPLOAD_TOO_SMALL = _noop('Minimum file size not met.')
+FILE_UPLOAD_BAD_TYPE = _noop('Unsupported file type.')
+FILE_UPLOAD_BAD_EXT = _noop('File extension does not match data.')
+FILE_UPLOAD_BAD_MIMETYPE = _noop('Content-Type header does not match data.')
 
 
 class ImageValidationError(Exception):
     """
     Exception to use when the system rejects a user-supplied source image.
     """
-    pass
+
+    @property
+    def user_message(self):
+        return _(self.message)
 
 
 def validate_uploaded_image(uploaded_file):
@@ -57,25 +57,25 @@ def validate_uploaded_image(uploaded_file):
     }
 
     if uploaded_file.size > settings.PROFILE_IMAGE_MAX_BYTES:
-        raise ImageValidationError(DevMsg.FILE_TOO_LARGE)
+        raise ImageValidationError(FILE_UPLOAD_TOO_LARGE)
     elif uploaded_file.size < settings.PROFILE_IMAGE_MIN_BYTES:
-        raise ImageValidationError(DevMsg.FILE_TOO_SMALL)
+        raise ImageValidationError(FILE_UPLOAD_TOO_SMALL)
 
     # check the file extension looks acceptable
     filename = str(uploaded_file.name).lower()
     filetype = [ft for ft in image_types if any(filename.endswith(ext) for ext in image_types[ft]['extension'])]
     if not filetype:
-        raise ImageValidationError(DevMsg.FILE_BAD_TYPE)
+        raise ImageValidationError(FILE_UPLOAD_BAD_TYPE)
     filetype = filetype[0]
 
     # check mimetype matches expected file type
     if uploaded_file.content_type not in image_types[filetype]['mimetypes']:
-        raise ImageValidationError(DevMsg.FILE_BAD_MIMETYPE)
+        raise ImageValidationError(FILE_UPLOAD_BAD_MIMETYPE)
 
     # check magic number matches expected file type
     headers = image_types[filetype]['magic']
     if uploaded_file.read(len(headers[0]) / 2).encode('hex') not in headers:
-        raise ImageValidationError(DevMsg.FILE_BAD_EXT)
+        raise ImageValidationError(FILE_UPLOAD_BAD_EXT)
     # avoid unexpected errors from subsequent modules expecting the fp to be at 0
     uploaded_file.seek(0)
 

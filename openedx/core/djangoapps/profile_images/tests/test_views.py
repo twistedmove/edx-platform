@@ -2,6 +2,7 @@
 Test cases for the HTTP endpoints of the profile image api.
 """
 
+from contextlib import closing
 import unittest
 
 import ddt
@@ -105,10 +106,11 @@ class ProfileImageUploadTestCase(ProfileImageEndpointTestCase):
         """
         Test that an authenticated user can POST to their own upload endpoint.
         """
-        response = self.client.post(self.url, {'file': make_image_file()}, format='multipart')
-        self.check_response(response, 204)
-        self.check_images()
-        self.check_has_profile_image()
+        with closing(make_image_file()) as image_file:
+            response = self.client.post(self.url, {'file': image_file}, format='multipart')
+            self.check_response(response, 204)
+            self.check_images()
+            self.check_has_profile_image()
 
     def test_upload_other(self):
         """
@@ -117,10 +119,11 @@ class ProfileImageUploadTestCase(ProfileImageEndpointTestCase):
         different_user = UserFactory.create(password=TEST_PASSWORD)
         different_client = APIClient()
         different_client.login(username=different_user.username, password=TEST_PASSWORD)
-        response = different_client.post(self.url, {'file': make_image_file()}, format='multipart')
-        self.check_response(response, 404)
-        self.check_images(False)
-        self.check_has_profile_image(False)
+        with closing(make_image_file()) as image_file:
+            response = different_client.post(self.url, {'file': image_file}, format='multipart')
+            self.check_response(response, 404)
+            self.check_images(False)
+            self.check_has_profile_image(False)
 
     def test_upload_staff(self):
         """
@@ -129,10 +132,11 @@ class ProfileImageUploadTestCase(ProfileImageEndpointTestCase):
         staff_user = UserFactory(is_staff=True, password=TEST_PASSWORD)
         staff_client = APIClient()
         staff_client.login(username=staff_user.username, password=TEST_PASSWORD)
-        response = staff_client.post(self.url, {'file': make_image_file()}, format='multipart')
-        self.check_response(response, 403)
-        self.check_images(False)
-        self.check_has_profile_image(False)
+        with closing(make_image_file()) as image_file:
+            response = staff_client.post(self.url, {'file': image_file}, format='multipart')
+            self.check_response(response, 403)
+            self.check_images(False)
+            self.check_has_profile_image(False)
 
     def test_upload_missing_file(self):
         """
@@ -178,9 +182,10 @@ class ProfileImageRemoveTestCase(ProfileImageEndpointTestCase):
 
     def setUp(self):
         super(ProfileImageRemoveTestCase, self).setUp()
-        generate_and_store_profile_images(make_image_file(), get_profile_image_names(self.user.username))
-        self.check_images()
-        set_has_profile_image(self.user.username, True)
+        with closing(make_image_file()) as image_file:
+            generate_and_store_profile_images(image_file, get_profile_image_names(self.user.username))
+            self.check_images()
+            set_has_profile_image(self.user.username, True)
 
     def test_anonymous_access(self):
         """

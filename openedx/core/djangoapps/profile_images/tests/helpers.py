@@ -8,7 +8,6 @@ from django.core.files.uploadedfile import UploadedFile
 from PIL import Image
 
 
-
 def make_image_file(dimensions=(320, 240), extension=".jpeg", force_size=None):
     """
     Returns a named temporary file created with the specified image type and options.

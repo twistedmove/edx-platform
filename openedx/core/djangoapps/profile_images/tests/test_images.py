@@ -2,6 +2,7 @@
 Test cases for image processing functions in the profile image package.
 """
 
+from contextlib import closing
 from itertools import product
 import os
 from tempfile import NamedTemporaryFile
@@ -14,11 +15,15 @@ import mock
 from PIL import Image
 
 from ..images import (
-    validate_uploaded_image,
+    FILE_UPLOAD_TOO_LARGE,
+    FILE_UPLOAD_TOO_SMALL,
+    FILE_UPLOAD_BAD_TYPE,
+    FILE_UPLOAD_BAD_EXT,
+    FILE_UPLOAD_BAD_MIMETYPE,
     generate_and_store_profile_images,
-    remove_profile_images,
-    DevMsg,
     ImageValidationError,
+    remove_profile_images,
+    validate_uploaded_image,
 )
 from .helpers import make_image_file, make_uploaded_file
 
@@ -30,10 +35,10 @@ class TestValidateUploadedImage(TestCase):
     """
 
     @ddt.data(
-        (99, DevMsg.FILE_TOO_SMALL),
+        (99, FILE_UPLOAD_TOO_SMALL),
         (100, ),
         (1024, ),
-        (1025, DevMsg.FILE_TOO_LARGE),
+        (1025, FILE_UPLOAD_TOO_LARGE),
     )
     @ddt.unpack
     @override_settings(PROFILE_IMAGE_MIN_BYTES=100, PROFILE_IMAGE_MAX_BYTES=1024)
@@ -47,21 +52,22 @@ class TestValidateUploadedImage(TestCase):
             content_type="image/png",
             force_size=upload_size
         )
-        if failure_message is not None:
-            with self.assertRaises(ImageValidationError) as cm:
+        with closing(uploaded_file):
+            if failure_message is not None:
+                with self.assertRaises(ImageValidationError) as cm:
+                    validate_uploaded_image(uploaded_file)
+                self.assertEqual(cm.exception.message, failure_message)
+            else:
                 validate_uploaded_image(uploaded_file)
-            self.assertEqual(cm.exception.message, failure_message)
-        else:
-            validate_uploaded_image(uploaded_file)
-            self.assertEqual(uploaded_file.tell(), 0)
+                self.assertEqual(uploaded_file.tell(), 0)
 
     @ddt.data(
         (".gif", "image/gif"),
         (".jpg", "image/jpeg"),
         (".jpeg", "image/jpeg"),
         (".png", "image/png"),
-        (".bmp", "image/bmp", DevMsg.FILE_BAD_TYPE),
-        (".tif", "image/tiff", DevMsg.FILE_BAD_TYPE),
+        (".bmp", "image/bmp", FILE_UPLOAD_BAD_TYPE),
+        (".tif", "image/tiff", FILE_UPLOAD_BAD_TYPE),
     )
     @ddt.unpack
     def test_extension(self, extension, content_type, failure_message=None):
@@ -69,13 +75,14 @@ class TestValidateUploadedImage(TestCase):
         Ensure that files whose extension is not supported fail validation.
         """
         uploaded_file = make_uploaded_file(extension=extension, content_type=content_type)
-        if failure_message is not None:
-            with self.assertRaises(ImageValidationError) as cm:
+        with closing(uploaded_file):
+            if failure_message is not None:
+                with self.assertRaises(ImageValidationError) as cm:
+                    validate_uploaded_image(uploaded_file)
+                self.assertEqual(cm.exception.message, failure_message)
+            else:
                 validate_uploaded_image(uploaded_file)
-            self.assertEqual(cm.exception.message, failure_message)
-        else:
-            validate_uploaded_image(uploaded_file)
-            self.assertEqual(uploaded_file.tell(), 0)
+                self.assertEqual(uploaded_file.tell(), 0)
 
     def test_extension_mismatch(self):
         """
@@ -83,29 +90,29 @@ class TestValidateUploadedImage(TestCase):
         file data.
         """
         # make a bmp, try to fool the function into thinking its a jpeg
-        bmp_file = make_image_file(extension=".bmp")
-        fake_jpeg_file = NamedTemporaryFile(suffix=".jpeg")
-        fake_jpeg_file.write(bmp_file.read())
-        fake_jpeg_file.seek(0)
-        uploaded_file = UploadedFile(
-            fake_jpeg_file,
-            content_type="image/jpeg",
-            size=os.path.getsize(fake_jpeg_file.name)
-        )
-        with self.assertRaises(ImageValidationError) as cm:
-            validate_uploaded_image(uploaded_file)
-        self.assertEqual(cm.exception.message, DevMsg.FILE_BAD_EXT)
+        with closing(make_image_file(extension=".bmp")) as bmp_file:
+            with closing(NamedTemporaryFile(suffix=".jpeg")) as fake_jpeg_file:
+                fake_jpeg_file.write(bmp_file.read())
+                fake_jpeg_file.seek(0)
+                uploaded_file = UploadedFile(
+                    fake_jpeg_file,
+                    content_type="image/jpeg",
+                    size=os.path.getsize(fake_jpeg_file.name)
+                )
+                with self.assertRaises(ImageValidationError) as cm:
+                    validate_uploaded_image(uploaded_file)
+                self.assertEqual(cm.exception.message, FILE_UPLOAD_BAD_EXT)
 
     def test_content_type(self):
         """
         Ensure that validation fails when the content_type header and file
         extension do not match
         """
-        with self.assertRaises(ImageValidationError) as cm:
-            validate_uploaded_image(
-                make_uploaded_file(extension=".jpeg", content_type="image/gif")
-            )
-        self.assertEqual(cm.exception.message, DevMsg.FILE_BAD_MIMETYPE)
+        uploaded_file = make_uploaded_file(extension=".jpeg", content_type="image/gif")
+        with closing(uploaded_file):
+            with self.assertRaises(ImageValidationError) as cm:
+                validate_uploaded_image(uploaded_file)
+            self.assertEqual(cm.exception.message, FILE_UPLOAD_BAD_MIMETYPE)
 
 
 @ddt.ddt
@@ -129,30 +136,30 @@ class TestGenerateProfileImages(TestCase):
         """
         extension = "." + format
         content_type = "image/" + format
-        uploaded_file = make_uploaded_file(dimensions=dimensions, extension=extension, content_type=content_type)
-
         requested_sizes = {
             10: "ten.jpg",
             100: "hundred.jpg",
             1000: "thousand.jpg",
         }
         mock_storage = mock.Mock()
-        with mock.patch(
-                "openedx.core.djangoapps.profile_images.images.get_profile_image_storage",
-                return_value=mock_storage
-        ):
-            generate_and_store_profile_images(uploaded_file, requested_sizes)
-            names_and_files = [v[0] for v in mock_storage.save.call_args_list]
-            actual_sizes = {}
-            for name, file in names_and_files:
-                # get the size of the image file and ensure it's square jpeg
-                image_obj = Image.open(file)
-                width, height = image_obj.size
-                self.assertEqual(width, height)
-                self.assertEqual(image_obj.format, 'JPEG')
-                actual_sizes[width] = name
-            self.assertEqual(requested_sizes, actual_sizes)
-            mock_storage.save.reset_mock()
+        uploaded_file = make_uploaded_file(dimensions=dimensions, extension=extension, content_type=content_type)
+        with closing(uploaded_file):
+            with mock.patch(
+                    "openedx.core.djangoapps.profile_images.images.get_profile_image_storage",
+                    return_value=mock_storage
+            ):
+                generate_and_store_profile_images(uploaded_file, requested_sizes)
+                names_and_files = [v[0] for v in mock_storage.save.call_args_list]
+                actual_sizes = {}
+                for name, file in names_and_files:
+                    # get the size of the image file and ensure it's square jpeg
+                    image_obj = Image.open(file)
+                    width, height = image_obj.size
+                    self.assertEqual(width, height)
+                    self.assertEqual(image_obj.format, 'JPEG')
+                    actual_sizes[width] = name
+                self.assertEqual(requested_sizes, actual_sizes)
+                mock_storage.save.reset_mock()
 
 
 class TestRemoveProfileImages(TestCase):

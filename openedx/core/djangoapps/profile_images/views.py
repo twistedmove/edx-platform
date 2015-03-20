@@ -50,11 +50,8 @@ class ProfileImageUploadView(APIView):
                 validate_uploaded_image(uploaded_file)
             except ImageValidationError, exc:
                 return Response(
-                    {
-                        "developer_message": exc.message,
-                        "user_message": None  # TODO do we need user messages in this API?
-                    },
-                    status=status.HTTP_400_BAD_REQUEST
+                    {"developer_message": exc.message, "user_message": exc.user_message},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             # generate profile pic and thumbnails and store them
