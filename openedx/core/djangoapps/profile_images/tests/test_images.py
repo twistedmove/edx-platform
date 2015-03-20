@@ -34,6 +34,18 @@ class TestValidateUploadedImage(TestCase):
     Test validate_uploaded_image
     """
 
+    def check_validation_result(self, uploaded_file, expected_failure_message):
+        """
+        Internal DRY helper.
+        """
+        if expected_failure_message is not None:
+            with self.assertRaises(ImageValidationError) as cm:
+                validate_uploaded_image(uploaded_file)
+            self.assertEqual(cm.exception.message, expected_failure_message)
+        else:
+            validate_uploaded_image(uploaded_file)
+            self.assertEqual(uploaded_file.tell(), 0)
+
     @ddt.data(
         (99, FILE_UPLOAD_TOO_SMALL),
         (100, ),
@@ -42,7 +54,7 @@ class TestValidateUploadedImage(TestCase):
     )
     @ddt.unpack
     @override_settings(PROFILE_IMAGE_MIN_BYTES=100, PROFILE_IMAGE_MAX_BYTES=1024)
-    def test_file_size(self, upload_size, failure_message=None):
+    def test_file_size(self, upload_size, expected_failure_message=None):
         """
         Ensure that files outside the accepted size range fail validation.
         """
@@ -53,13 +65,7 @@ class TestValidateUploadedImage(TestCase):
             force_size=upload_size
         )
         with closing(uploaded_file):
-            if failure_message is not None:
-                with self.assertRaises(ImageValidationError) as cm:
-                    validate_uploaded_image(uploaded_file)
-                self.assertEqual(cm.exception.message, failure_message)
-            else:
-                validate_uploaded_image(uploaded_file)
-                self.assertEqual(uploaded_file.tell(), 0)
+            self.check_validation_result(uploaded_file, expected_failure_message)
 
     @ddt.data(
         (".gif", "image/gif"),
@@ -70,19 +76,13 @@ class TestValidateUploadedImage(TestCase):
         (".tif", "image/tiff", FILE_UPLOAD_BAD_TYPE),
     )
     @ddt.unpack
-    def test_extension(self, extension, content_type, failure_message=None):
+    def test_extension(self, extension, content_type, expected_failure_message=None):
         """
         Ensure that files whose extension is not supported fail validation.
         """
         uploaded_file = make_uploaded_file(extension=extension, content_type=content_type)
         with closing(uploaded_file):
-            if failure_message is not None:
-                with self.assertRaises(ImageValidationError) as cm:
-                    validate_uploaded_image(uploaded_file)
-                self.assertEqual(cm.exception.message, failure_message)
-            else:
-                validate_uploaded_image(uploaded_file)
-                self.assertEqual(uploaded_file.tell(), 0)
+            self.check_validation_result(uploaded_file, expected_failure_message)
 
     def test_extension_mismatch(self):
         """
