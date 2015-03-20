@@ -15,8 +15,6 @@ class LanguageProficiencySerializer(serializers.ModelSerializer):
     Class that serializes the LanguageProficiency model for account
     information.
     """
-    display_name = serializers.SerializerMethodField("get_display_name")
-
     class Meta:
         model = LanguageProficiency
         fields = ("code",)
@@ -32,16 +30,6 @@ class LanguageProficiencySerializer(serializers.ModelSerializer):
             return data.get('code', None)
         except AttributeError:
             return None
-
-    def validate_code(self, attrs, source):
-        """
-        Validate incoming language codes against the set of ISO 639 language
-        codes we support.
-        """
-        if source in attrs:
-            if attrs[source] not in settings.ALL_LANGUAGES_DICT:
-                raise serializers.ValidationError("The code field must be a valid ISO 639 language code.")
-        return attrs
 
 
 class AccountUserSerializer(serializers.HyperlinkedModelSerializer, ReadOnlyFieldsSerializerMixin):
@@ -65,7 +53,7 @@ class AccountLegacyProfileSerializer(serializers.HyperlinkedModelSerializer, Rea
     class Meta:
         model = UserProfile
         fields = (
-            "name", "gender", "goals", "year_of_birth", "level_of_education", "language", "country",
+            "name", "gender", "goals", "year_of_birth", "level_of_education", "country",
             "mailing_address", "bio", "profile_image", "language_proficiencies"
         )
         # Currently no read-only field, but keep this so view code doesn't need to know.
@@ -87,10 +75,9 @@ class AccountLegacyProfileSerializer(serializers.HyperlinkedModelSerializer, Rea
     def validate_language_proficiencies(self, attrs, source):
         """ Enforce all languages are unique. """
         language_proficiencies = [language for language in attrs.get(source, [])]
-        if language_proficiencies and len(language_proficiencies) > 1:
-            first_code = language_proficiencies[0].code
-            if all([language.code == first_code for language in language_proficiencies]):
-                raise serializers.ValidationError("The language_proficiencies field must consist of unique languages")
+        unique_language_proficiencies = set(language.code for language in language_proficiencies)
+        if len(language_proficiencies) != len(unique_language_proficiencies):
+            raise serializers.ValidationError("The language_proficiencies field must consist of unique languages")
         return attrs
 
     def transform_gender(self, obj, value):

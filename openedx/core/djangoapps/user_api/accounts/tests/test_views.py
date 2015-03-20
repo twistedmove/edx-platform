@@ -136,7 +136,7 @@ class TestAccountAPI(UserAPITestCase):
         self.assertEqual("US", data["country"])
         self._verify_profile_image_data(data, True)
         self.assertIsNone(data["time_zone"])
-        self.assertIsNone(data["languages"])
+        self.assertEqual([{"code": "en"}], data["language_proficiencies"])
         self.assertEqual("Tired mother of twins", data["bio"])
 
     def _verify_private_account_response(self, response):
@@ -153,11 +153,10 @@ class TestAccountAPI(UserAPITestCase):
         Verify that all account fields are returned (even those that are not shareable).
         """
         data = response.data
-        self.assertEqual(15, len(data))
+        self.assertEqual(14, len(data))
         self.assertEqual(self.user.username, data["username"])
         self.assertEqual(self.user.first_name + " " + self.user.last_name, data["name"])
         self.assertEqual("US", data["country"])
-        self.assertEqual("", data["language"])
         self.assertEqual("m", data["gender"])
         self.assertEqual(1900, data["year_of_birth"])
         self.assertEqual("m", data["level_of_education"])
@@ -270,14 +269,13 @@ class TestAccountAPI(UserAPITestCase):
         def verify_get_own_information():
             response = self.send_get(self.client)
             data = response.data
-            self.assertEqual(15, len(data))
+            self.assertEqual(14, len(data))
             self.assertEqual(self.user.username, data["username"])
             self.assertEqual(self.user.first_name + " " + self.user.last_name, data["name"])
             for empty_field in ("year_of_birth", "level_of_education", "mailing_address", "bio"):
                 self.assertIsNone(data[empty_field])
             self.assertIsNone(data["country"])
             # TODO: what should the format of this be?
-            self.assertEqual("", data["language"])
             self.assertEqual("m", data["gender"])
             self.assertEqual("Learn a lot", data["goals"])
             self.assertEqual(self.user.email, data["email"])
@@ -345,7 +343,6 @@ class TestAccountAPI(UserAPITestCase):
         ("year_of_birth", 2009, "not_an_int", u"Enter a whole number."),
         ("name", "bob", "z" * 256, u"Ensure this value has at most 255 characters (it has 256)."),
         ("name", u"ȻħȺɍłɇs", "z   ", u"The name field must be at least 2 characters long."),
-        ("language", "Creole"),
         ("goals", "Smell the roses"),
         ("mailing_address", "Sesame Street"),
         ("bio", "Lacrosse-playing superhero"),
@@ -354,8 +351,8 @@ class TestAccountAPI(UserAPITestCase):
         ("bio", "<html>fancy text</html>"),
         ("language_proficiencies", [{u"code": u"en"}, {u"code": u"fr"}], "not_a_list", {u'non_field_errors': [u'Expected a list of items.']}),
         ("language_proficiencies", [{u"code": u"en"}, {u"code": u"fr"}], [{}], {'code': [u'This field is required.']}),
-        ("language_proficiencies", [{u"code": u"en"}, {u"code": u"fr"}], [{u"code": u"fake_code"}], {'code': [u'The code field must be a valid ISO 639 language code.']}),
-        ("language_proficiencies", [{u"code": u"en"}, {u"code": u"fr"}], [{u"code": u"en"}, {u"code": u"en"}], u"The language_proficiencies field must consist of unique languages"),
+        ("language_proficiencies", [{u"code": u"en"}, {u"code": u"fr"}], [{u"code": u"fake_code"}], {'code': [u'Select a valid choice. fake_code is not one of the available choices.']}),
+        ("language_proficiencies", [{u"code": u"en"}, {u"code": u"fr"}], [{u"code": u"fr"}, {u"code": u"en"}, {u"code": u"en"}], u"The language_proficiencies field must consist of unique languages"),
         # Note that email is tested below, as it is not immediately updated.
     )
     @ddt.unpack

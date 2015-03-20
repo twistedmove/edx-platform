@@ -136,16 +136,6 @@ class TestAccountApi(TestCase):
                 self.user,
                 {"language_proficiencies": [{}]}
             )
-        with self.assertRaises(AccountValidationError):
-            update_account_settings(
-                self.user,
-                {"language_proficiencies": [{"code": "fake_code"}]}
-            )
-        with self.assertRaises(AccountValidationError):
-            update_account_settings(
-                self.user,
-                {"language_proficiencies": [{"code": "en"}, {"code": "en"}]}
-            )
 
     def test_update_multiple_validation_errors(self):
         """Test that all validation errors are built up and returned at once"""
@@ -231,7 +221,6 @@ class AccountSettingsOnCreationTest(TestCase):
             'email': self.EMAIL,
             'name': u'',
             'gender': None,
-            'language': u'',
             'goals': None,
             'is_active': False,
             'level_of_education': None,

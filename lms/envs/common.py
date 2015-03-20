@@ -2109,7 +2109,7 @@ ACCOUNT_VISIBILITY_CONFIGURATION = {
         'profile_image',
         'country',
         'time_zone',
-        'languages',
+        'language_proficiencies',
         'bio',
     ],
 

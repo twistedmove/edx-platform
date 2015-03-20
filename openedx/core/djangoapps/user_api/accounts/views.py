@@ -59,8 +59,6 @@ class AccountView(APIView):
                     * "none" signifying "None"
                     * "o" signifying "Other"
 
-                * language: null or name of preferred language
-
                 * country: null (not set), or a Country corresponding to one of the ISO 3166-1 countries
 
                 * mailing_address: null or textual representation of mailing address
