@@ -1,7 +1,7 @@
 import os
 import tempfile
 import unittest
-from mock import patch
+from mock import patch, MagicMock
 from ddt import ddt, file_data
 
 import pavelib.quality
@@ -44,7 +44,7 @@ class TestPaverQualityViolations(unittest.TestCase):
     def test_pep8_parser(self):
         with open(self.f.name, 'w') as f:
             f.write("hello\nhithere")
-        num = pavelib.quality._count_pep8_violations(f.name)
+        num, _violations = pavelib.quality._pep8_violations(f.name)
         self.assertEqual(num, 2)
 
     def tearDown(self):
@@ -67,17 +67,19 @@ class TestPaverRunQuality(unittest.TestCase):
 
     def test_failure_on_diffquality_pep8(self):
         """
-       If pep8 diff-quality fails due to the percentage threshold, pylint
-       should still be run
+        If pep8 finds errors, pylint should still be run
         """
+        # Mock _get_pep8_violations to return a violation
+        _mock_pep8_violations = MagicMock(return_value=(1, ['lms/envs/common.py:32:2: E225 missing whitespace around operator']))
+        with patch('pavelib.quality._get_pep8_violations', _mock_pep8_violations):
+            with self.assertRaises(SystemExit):
+                pavelib.quality.run_quality("")
+                self.assertRaises(BuildFailure)
 
-        # Underlying sh call must fail when it is running the pep8 diff-quality task
-        self._mock_paver_sh.side_effect = CustomShMock().fail_on_pep8
-        with self.assertRaises(SystemExit):
-            pavelib.quality.run_quality("")
-            self.assertRaises(BuildFailure)
-        # Test that both pep8 and pylint were called by counting the calls
-        self.assertEqual(self._mock_paver_sh.call_count, 2)
+        # Test that both pep8 and pylint were called by counting the calls to _get_pep8_violations
+        # (for pep8) and sh (for diff-quality pylint)
+        self.assertEqual(_mock_pep8_violations.call_count, 1)
+        self.assertEqual(self._mock_paver_sh.call_count, 1)
 
     def test_failure_on_diffquality_pylint(self):
         """
@@ -90,7 +92,8 @@ class TestPaverRunQuality(unittest.TestCase):
             pavelib.quality.run_quality("")
             self.assertRaises(BuildFailure)
         # Test that both pep8 and pylint were called by counting the calls
-        self.assertEqual(self._mock_paver_sh.call_count, 2)
+        # Pep8 is called twice (for lms and cms), then pylint is called an additional time.
+        self.assertEqual(self._mock_paver_sh.call_count, 3)
 
     def test_other_exception(self):
         """
@@ -114,17 +117,6 @@ class CustomShMock(object):
     Diff-quality makes a number of sh calls. None of those calls should be made during tests; however, some
     of them need to have certain responses.
     """
-
-    def fail_on_pep8(self, arg):
-        """
-        For our tests, we need the call for diff-quality running pep8 reports to fail, since that is what
-        is going to fail when we pass in a percentage ("p") requirement.
-        """
-        if "pep8" in arg:
-            # Essentially mock diff-quality exiting with 1
-            paver.easy.sh("exit 1")
-        else:
-            return
 
     def fail_on_pylint(self, arg):
         """
