@@ -168,13 +168,22 @@ def _get_pep8_violations():
     for system in systems:
         sh('pep8 {system} | tee {report_dir}/pep8.report -a'.format(system=system, report_dir=report_dir))
 
-    count = _count_pep8_violations(
+    count, violations_list = _pep8_violations(
         "{report_dir}/pep8.report".format(report_dir=report_dir)
     )
 
-    with open("{report_dir}/pep8.report".format(report_dir=report_dir), 'r') as f:
-        violations_list = f.readlines()
     return (count, violations_list)
+
+
+def _pep8_violations(report_file):
+    """
+    Returns a tuple of (num_violations, violations_list) for all
+    pep8 violations in the given report_file.
+    """
+    with open(report_file) as f:
+        violations_list = f.readlines()
+    num_lines = len(violations_list)
+    return num_lines, violations_list
 
 
 @task
@@ -207,11 +216,6 @@ def run_pep8(options):
                 count=count, violations=violations_str
             )
         )
-
-
-def _count_pep8_violations(report_file):
-    num_lines = sum(1 for line in open(report_file))
-    return num_lines
 
 
 @task
@@ -248,31 +252,12 @@ def run_quality(options):
         quality of the branch vs the compare branch is less than 80%, then this task will fail.
         This threshold would be applied to both pep8 and pylint.
     """
-
     # Directory to put the diff reports in.
     # This makes the folder if it doesn't already exist.
     dquality_dir = (Env.REPORT_DIR / "diff_quality").makedirs_p()
     diff_quality_percentage_failure = False
 
-    # Set the string, if needed, to be used for the diff-quality --compare-branch switch.
-    compare_branch = getattr(options, 'compare_branch', None)
-    compare_branch_string = ''
-    if compare_branch:
-        compare_branch_string = '--compare-branch={0}'.format(compare_branch)
-
-    # Set the string, if needed, to be used for the diff-quality --fail-under switch.
-    diff_threshold = int(getattr(options, 'percentage', -1))
-    percentage_string = ''
-    if diff_threshold > -1:
-        percentage_string = '--fail-under={0}'.format(diff_threshold)
-
-    # Generate diff-quality html report for pep8, and print to console
-    # If pep8 reports exist, use those
-    # Otherwise, `diff-quality` will call pep8 itself
-
-    pep8_files = get_violations_reports("pep8")
-    pep8_reports = u' '.join(pep8_files)
-
+    # Run pep8 directly since we have 0 violations on master
     def _pep8_output(count, violations_list, is_html=False):
 
         if is_html:
@@ -306,6 +291,7 @@ def run_quality(options):
         return ''.join(lines)
 
     (count, violations_list) = _get_pep8_violations()
+
     # Print number of violations to log
     print _pep8_output(count, violations_list)
 
@@ -315,6 +301,19 @@ def run_quality(options):
 
     if count > 0:
         diff_quality_percentage_failure = True
+
+    # ----- Set up for diff-quality pylint call -----
+    # Set the string, if needed, to be used for the diff-quality --compare-branch switch.
+    compare_branch = getattr(options, 'compare_branch', None)
+    compare_branch_string = ''
+    if compare_branch:
+        compare_branch_string = '--compare-branch={0}'.format(compare_branch)
+
+    # Set the string, if needed, to be used for the diff-quality --fail-under switch.
+    diff_threshold = int(getattr(options, 'percentage', -1))
+    percentage_string = ''
+    if diff_threshold > -1:
+        percentage_string = '--fail-under={0}'.format(diff_threshold)
 
     # Generate diff-quality html report for pylint, and print to console
     # If pylint reports exist, use those
