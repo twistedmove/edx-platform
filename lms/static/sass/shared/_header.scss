@@ -10,15 +10,6 @@ header.global {
   position: relative;
   width: 100%;
 
-  nav {
-    @include clearfix();
-    height: 40px;
-    margin: 0 auto;
-    padding: 18px ($baseline/2) 0;
-    max-width: grid-width(12);
-    min-width: 760px;
-  }
-
   .wrapper-header {
     @include clearfix();
     height: 40px;
@@ -36,6 +27,15 @@ header.global {
     a {
       display: block;
     }
+  }
+
+  nav {
+    @include clearfix();
+    height: 40px;
+    margin: 0 auto;
+    padding: 18px ($baseline/2) 0;
+    max-width: grid-width(12);
+    min-width: 760px;
   }
 
   .left {
@@ -373,7 +373,7 @@ header.global-new {
 
   h1.logo {
     @include float(left);
-    margin: -2px 39px 0 39px;
+    margin: -2px 39px 0 10px;
     position: relative;
 
     a {
@@ -624,7 +624,7 @@ header.global-new {
         padding: 3px 10px;
         font-size: 18px;
         line-height: 24px;
-        font-weight: 500;
+        font-weight: 600;
         font-family: $header-sans-serif;
         color: $courseware-navigation-color;
 
@@ -694,6 +694,11 @@ header.global-new {
     }
 
     .logo {
+      position: absolute;
+      top: 20px;
+      @include left(calc(50% - 90px));
+      width: 54px;
+
       img {
         width: 54px;
       }
@@ -732,7 +737,7 @@ header.global-new {
       a {
         color: white;
         padding: 10px;
-        font-weight: 300;
+        font-weight: 400;
 
         &:hover,
         &:focus {
@@ -767,6 +772,11 @@ header.global-new {
       }
 
       .logo {
+        position: relative;
+        top: 0;
+        @include left(0);
+        width: auto;
+
         img {
           width: auto;
         }
@@ -784,7 +794,7 @@ header.global-new {
         a {
           color: $courseware-navigation-color;
           padding: 3px 10px;
-          font-weight: 500;
+          font-weight: 600;
 
           &:hover,
           &:focus {
@@ -816,7 +826,7 @@ header.global-new {
 
     @include media( $xl-desktop ) {
       .wrapper-header {
-        padding: 17px 10px;
+        padding: 17px 0;
       }
 
       .nav-global,
@@ -824,11 +834,6 @@ header.global-new {
         a {
           font-size: 18px;
         }
-      }
-
-      .logo {
-        margin-left: 0;
-        margin-right: 0;
       }
     }
   }
