@@ -8,12 +8,14 @@ import jwt
 from opaque_keys import InvalidKeyError
 from opaque_keys.edx.keys import CourseKey
 import requests
+from requests.exceptions import RequestException, Timeout
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.status import HTTP_406_NOT_ACCEPTABLE, HTTP_202_ACCEPTED, HTTP_200_OK, HTTP_409_CONFLICT
 from rest_framework.views import APIView
 
 from commerce.constants import OrderStatus, Messages
-from commerce.http import DetailResponse, ApiErrorResponse
+from commerce.http import DetailResponse, InternalRequestErrorResponse
 from course_modes.models import CourseMode
 from courseware import courses
 from enrollment.api import add_enrollment
@@ -126,17 +128,21 @@ class OrdersView(APIView):
             timeout = getattr(settings, 'ECOMMERCE_API_TIMEOUT', 5)
             response = requests.post(url, data=json.dumps({'sku': honor_mode.sku}), headers=headers,
                                      timeout=timeout)
-        except Exception as ex:  # pylint: disable=broad-except
+        except Timeout as ex:
             log.exception('Call to E-Commerce API failed: %s.', ex.message)
-            return ApiErrorResponse()
+            return InternalRequestErrorResponse(ex.message, status.HTTP_408_REQUEST_TIMEOUT)
+        except RequestException as ex:
+            log.exception('Call to E-Commerce API failed: %s.', ex.message)
+            return InternalRequestErrorResponse(ex.message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         status_code = response.status_code
 
         try:
             data = response.json()
         except JSONDecodeError:
-            log.error('E-Commerce API response is not valid JSON.')
-            return ApiErrorResponse()
+            message = 'E-Commerce API response is not valid JSON.'
+            log.error(message)
+            return InternalRequestErrorResponse(message, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         if status_code == HTTP_200_OK:
             order_number = data.get('number')
@@ -170,4 +176,4 @@ class OrdersView(APIView):
             }
             log.error(msg, msg_kwargs)
 
-            return ApiErrorResponse()
+            return InternalRequestErrorResponse(msg, status_code)

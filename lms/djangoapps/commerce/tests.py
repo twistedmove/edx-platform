@@ -67,10 +67,12 @@ class OrdersViewTests(EnrollmentEventTestMixin, ModuleStoreTestCase):
         actual = json.loads(response.content)['detail']
         self.assertEqual(actual, expected_msg)
 
-    def assertValidEcommerceApiErrorResponse(self, response):
+    def assertValidEcommerceInternalRequestErrorResponse(self, response, internal_status):
         """ Asserts the response is a valid response sent when the E-Commerce API is unavailable. """
-        self.assertEqual(response.status_code, 503)
-        self.assertResponseMessage(response, 'Call to E-Commerce API failed. Order creation failed.')
+        self.assertEqual(response.status_code, 500)
+        actual = json.loads(response.content)['detail']
+        self.assertIn('Call to E-Commerce API failed', actual)
+        self.assertIn(str(internal_status), actual)
 
     def assertUserEnrolled(self):
         """ Asserts that the user is enrolled in the course, and that an enrollment event was fired. """
@@ -138,7 +140,7 @@ class OrdersViewTests(EnrollmentEventTestMixin, ModuleStoreTestCase):
         """
         self._mock_ecommerce_api(status=status, body=json.dumps({'user_message': 'FAIL!'}))
         response = self._post_to_view()
-        self.assertValidEcommerceApiErrorResponse(response)
+        self.assertValidEcommerceInternalRequestErrorResponse(response, status)
         self.assertUserNotEnrolled()
 
     @httpretty.activate
@@ -153,7 +155,7 @@ class OrdersViewTests(EnrollmentEventTestMixin, ModuleStoreTestCase):
 
         self._mock_ecommerce_api(body=request_callback)
         response = self._post_to_view()
-        self.assertValidEcommerceApiErrorResponse(response)
+        self.assertValidEcommerceInternalRequestErrorResponse(response, 408)
         self.assertUserNotEnrolled()
 
     @httpretty.activate
@@ -163,7 +165,7 @@ class OrdersViewTests(EnrollmentEventTestMixin, ModuleStoreTestCase):
         """
         self._mock_ecommerce_api(body='TOTALLY NOT JSON!')
         response = self._post_to_view()
-        self.assertValidEcommerceApiErrorResponse(response)
+        self.assertValidEcommerceInternalRequestErrorResponse(response, 500)
         self.assertUserNotEnrolled()
 
     def _test_successful_ecommerce_api_call(self):
