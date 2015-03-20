@@ -128,6 +128,7 @@ header.global {
       > a {
         margin: 0;
         @include border-right-radius(0px);
+        background-image: none;
       }
 
       &:last-child {
@@ -157,7 +158,7 @@ header.global {
       .icon {
         display: inline-block;
         @include float(left);
-        margin: 3px 0 -3px 0;
+        @include margin(2px, 6px, -3px, 3px);
         font-size: 1.2em;
         color: $m-gray;
       }
@@ -200,6 +201,7 @@ header.global {
       box-shadow: 0 2px 24px 0 rgba(0,0,0, 0.3);
       border: 1px solid $border-color-3;
       display: none;
+      margin-top: 0;
       padding: 5px 10px;
       position: absolute;
       @include right(0px);
@@ -225,7 +227,7 @@ header.global {
         height: 0px;
         position: absolute;
         @include transform(rotate(-45deg));
-        @include right(12px);
+        @include right(7px);
         top: -6px;
         width: 0px;
       }
@@ -472,6 +474,7 @@ header.global-new {
       > a {
         margin: 0;
         @include border-right-radius(0);
+        background-image: none;
       }
 
       &:last-child {
@@ -500,7 +503,7 @@ header.global-new {
       .icon {
         display: inline-block;
         @include float(left);
-        margin: 3px 0 -3px 0;
+        @include margin(2px, 6px, -3px, 3px);
         font-size: 1.2em;
         color: $m-gray;
       }
@@ -543,6 +546,7 @@ header.global-new {
       box-shadow: 0 2px 24px 0 rgba(0,0,0, 0.3);
       border: 1px solid $border-color-3;
       display: none;
+      margin-top: 0;
       padding: 5px 10px;
       position: absolute;
       @include right(0);
@@ -568,7 +572,7 @@ header.global-new {
         height: 0px;
         position: absolute;
         @include transform(rotate(-45deg));
-        @include right(12px);
+        @include right(7px);
         top: -6px;
         width: 0px;
       }
